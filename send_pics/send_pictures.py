@@ -18,6 +18,10 @@ GPIO.setup(servo_pin, GPIO.OUT)
 pwm = GPIO.PWM(servo_pin, 40)  # 50 Hz PWM signal
 pwm.start(0)
 
+
+LED_PIN = 17
+GPIO.setup(LED_PIN, GPIO.OUT)
+
 BROKER_IP = "192.168.0.155"
 BROKER_PORT = 1883
 TOPIC_IMAGE = "image/stream"
@@ -34,6 +38,7 @@ def on_connect(client, userdata, flags, rc):
     else:
         print(f"Connection failed with code {rc}")
 
+
 def on_message(client, userdata, msg):
     global last_shot_time
     current_time = time.time()
@@ -43,8 +48,12 @@ def on_message(client, userdata, msg):
         if response == 'yes':
             pull_switch(servo_pin, pwm)
             last_shot_time = current_time  # Update last shot time
+            GPIO.output(LED_PIN, GPIO.LOW)
+
         print(f"Received response: {response}")
+        GPIO.output(LED_PIN, GPIO.HIGH)
     else:
+        GPIO.output(LED_PIN, GPIO.LOW)
         print("Cooldown active. Cannot shoot yet.")
     
 client = mqtt.Client(client_id=CLIENT_ID, callback_api_version=mqtt.CallbackAPIVersion.VERSION1)
@@ -76,3 +85,4 @@ finally:
     picam2.stop()
     client.loop_stop()
     client.disconnect()
+    GPIO.cleanup()
