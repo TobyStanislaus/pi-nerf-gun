@@ -15,20 +15,18 @@ def on_connect(client, userdata, flags, rc):
     global is_connected
     if rc == 0:
         is_connected = True
-        #print("Connected to MQTT broker.")
-        update_led_status()  # Update LEDs based on system state
+        update_led_status()
         client.subscribe(TOPIC_RESPONSE)
     else:
-        #print(f"Connection failed with code {rc}")
         is_connected = False
-        GPIO.output(RED_LED_PIN, GPIO.HIGH)  # Turn on RED LED when connection fails
-        GPIO.output(LED_PIN, GPIO.LOW)  # Ensure green LED is off
+        GPIO.output(RED_LED_PIN, GPIO.HIGH) 
+        GPIO.output(LED_PIN, GPIO.LOW) 
 
 
 def on_disconnect(client, userdata, rc):
     global is_connected
     is_connected = False
-    print("Disconnected from MQTT broker. Attempting to reconnect...")
+
     GPIO.output(RED_LED_PIN, GPIO.HIGH)  # Indicate connection loss
     GPIO.output(LED_PIN, GPIO.LOW)  # Ensure green LED is off
 
@@ -57,7 +55,7 @@ def on_message(client, userdata, msg):
 
 
 def update_led_status():
-    """Update LEDs based on system state and cooldown status"""
+    """Update LEDs based on system state"""
     current_time = time.time()
     
     # Check if system is not connected
@@ -74,12 +72,11 @@ def connect_mqtt():
         try:
             client.connect(BROKER_IP, BROKER_PORT)
             client.loop_start()
-            time.sleep(RECONNECT_DELAY)  # Small delay before checking connection
+            time.sleep(RECONNECT_DELAY)  
         except Exception as e:
-            #print(f"Reconnection failed: {e}")
-            GPIO.output(RED_LED_PIN, GPIO.HIGH)  # Keep RED LED on during reconnection attempts
-            GPIO.output(LED_PIN, GPIO.LOW)  # Ensure green LED is off
-            time.sleep(RECONNECT_DELAY)  # Wait before retrying
+            GPIO.output(RED_LED_PIN, GPIO.HIGH)
+            GPIO.output(LED_PIN, GPIO.LOW) 
+            time.sleep(RECONNECT_DELAY)
 
 
 def capture_and_publish():
