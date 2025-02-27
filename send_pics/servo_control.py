@@ -1,4 +1,3 @@
-import pigpio
 from time import sleep
 
 def set_angle(angle, servo_pin, pi):

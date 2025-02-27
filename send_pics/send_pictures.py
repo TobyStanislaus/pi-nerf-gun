@@ -6,10 +6,7 @@ import time
 import RPi.GPIO as GPIO
 from servo_control import *
 import cv2
-import os
 import pigpio
-
-os.system("sudo pigpiod")
 
 def on_connect(client, userdata, flags, rc):
     global is_connected
