@@ -223,10 +223,12 @@ picam2 = Picamera2()
 # Optimize camera settings for speed
 picam2.configure(picam2.create_still_configuration(
     main={'size': (160, 120)},  # Even smaller resolution
+    lores={'size': (160, 120)},
+
     buffer_count=1,  # Minimum buffer
     display=None,    # No display buffer
-    encode='main'
-    #encode='lores'   # Low resolution encoding
+    #encode='main'
+    encode='lores'   # Low resolution encoding
 ))
 
 # Enable camera to start in always-on capture mode
