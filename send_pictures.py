@@ -217,6 +217,7 @@ client.on_disconnect = on_disconnect
 client.on_message = on_message
 
 connect_mqtt()
+pull_switch(servo_pin, pi)
 
 # Set up Picamera2
 picam2 = Picamera2()
