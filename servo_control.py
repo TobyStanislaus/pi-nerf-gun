@@ -1,21 +1,13 @@
-import RPi.GPIO as GPIO
+import pigpio
 from time import sleep
 
-def set_angle(angle, servo_pin, pwm):
-    duty = 2+(angle/18)
-    GPIO.output(servo_pin, True)
-    pwm.ChangeDutyCycle(duty)
+def set_angle(angle, servo_pin, pi):
+    """Moves the servo to a specific angle using pigpio."""
+    pulse_width = int(500 + (angle / 180.0) * 2000)  # Convert angle to PWM pulse width
+    pi.set_servo_pulsewidth(servo_pin, pulse_width)
     sleep(0.5)
-    GPIO.output(servo_pin, False)
-    pwm.ChangeDutyCycle(0)
-    
-    
-def pull_switch(servo_pin, pwm):
 
-    set_angle(20, servo_pin, pwm)
-    set_angle(10, servo_pin, pwm)
-
-
-
-
- 
+def pull_switch(servo_pin, pi):
+    """Performs the switch pull sequence."""
+    set_angle(25, servo_pin, pi)
+    set_angle(10, servo_pin, pi)
