@@ -3,9 +3,7 @@ from servo_control import pull_switch
 import cv2
 import pigpio
 import time
-import statistics
 from picamera2 import Picamera2
-import numpy as np
 
 # Set up pigpio daemon
 pi = pigpio.pi()
