@@ -23,11 +23,14 @@ model = load_model(model_path)
 
 # Suppress OpenCV warnings
 GPIO.setwarnings(False)
+
+'''
 servo_pin = 18
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(servo_pin, GPIO.OUT)
 pwm = GPIO.PWM(servo_pin, 50)
 pwm.start(0)
+'''
 
 # Initialize PiCamera2
 picam2 = Picamera2()
@@ -39,19 +42,25 @@ picam2.configure(picam2.create_still_configuration())
 picam2.start()
 
 # Give the camera a moment to initialize
-time.sleep(2)
+
 
 # Capture frames in a loop
 while True:
+
     # Capture image from the camera into a NumPy array
     image_stream = picam2.capture_array()
 
     # Process the frame using OpenCV
     present = detect_image(model, image_stream)
+    GPIO.output(RED_LED_PIN, GPIO.LOW)
+    GPIO.output(LED_PIN, GPIO.HIGH)
 
     if present:
         #pull_switch(servo_pin, pwm)
         print('shoot')
+        GPIO.output(RED_LED_PIN, GPIO.HIGH)
+        GPIO.output(LED_PIN, GPIO.LOW)
+        time.sleep(1)
 
 # Stop the camera and clean up
 picam2.stop()
