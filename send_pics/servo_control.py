@@ -7,5 +7,5 @@ def set_angle(angle, servo_pin, pi):
     
     
 def pull_switch(servo_pin, pi):
-    set_angle(20, servo_pin, pi)
+    set_angle(25, servo_pin, pi)
     set_angle(10, servo_pin, pi)
