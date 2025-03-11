@@ -1,5 +1,5 @@
 from ultralytics import YOLO
-import cv2
+import statistics
 
 
 def load_model(path):
@@ -15,4 +15,11 @@ def detect_image(model, image):
             return True
 
     return False
+
+def print_stats(name, times):
+    if times:
+        print(f"{name}: avg={statistics.mean(times):.4f}s, "
+                f"min={min(times):.4f}s, max={max(times):.4f}s, "
+                f"stdev={statistics.stdev(times) if len(times) > 1 else 0:.4f}s "
+                f"(samples: {len(times)})")
 
