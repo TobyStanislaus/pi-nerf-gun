@@ -3,7 +3,9 @@ from servo_control import pull_switch
 import cv2
 import pigpio
 import time
+import numpy as np
 from picamera2 import Picamera2
+from openvino.runtime import Core
 
 # Set up pigpio daemon
 pi = pigpio.pi()
@@ -23,9 +25,11 @@ pi.set_mode(RED_LED_PIN, pigpio.OUTPUT)
 pi.write(RED_LED_PIN, 0)
 pi.write(LED_PIN, 0)
 
-# Load YOLOv8 model
-model_path = 'model/yolov8n-face.pt'
-model = load_model(model_path)
+# Load YOLOv8 ONNX model using OpenVINO
+model_path = "model/yolov8n-face.onnx"
+ie = Core()
+compiled_model = ie.compile_model(model_path, "MYRIAD")  # Use NCS2 for inference
+input_layer = compiled_model.input(0)
 
 # Initialize PiCamera2
 picam2 = Picamera2()
@@ -39,6 +43,22 @@ servo_times = []
 total_cycle_times_no_switch = []
 total_cycle_times_with_switch = []
 
+def preprocess_image(image):
+    """ Prepares the image for YOLO inference (resize & normalize). """
+    img = cv2.resize(image, (640, 640))  # Resize to YOLO input size
+    img = img.astype(np.float32) / 255.0  # Normalize
+    img = np.transpose(img, (2, 0, 1))  # Convert to (C, H, W) format
+    img = np.expand_dims(img, axis=0)  # Add batch dimension
+    return img
+
+def detect_faces(image):
+    """Runs inference and returns True if a face is detected."""
+    input_data = preprocess_image(image)
+    results = compiled_model.infer_new_request({input_layer: input_data})
+    
+    output = results[compiled_model.output(0)]
+    return any(output[:, 4] > 0.3)  # Check confidence score > 0.3
+
 # Capture frames in a loop
 try:
     while True:
@@ -50,9 +70,9 @@ try:
         img_end = time.time()
         image_capture_times.append(img_end - img_start)
 
-        # Process the frame using OpenCV
+        # Process the frame using OpenVINO
         proc_start = time.time()
-        present = detect_image(model, image_stream)
+        present = detect_faces(image_stream)
         proc_end = time.time()
         processing_times.append(proc_end - proc_start)
 

@@ -1,2 +1,5 @@
 venv/
 model/
+__pycache__/
+l_openvino_toolkit_runtime_ubuntu20_p_2022.1.0.643/
+l_openvino_toolkit_runtime_ubuntu20_p_2022.1.0.643.tgz
