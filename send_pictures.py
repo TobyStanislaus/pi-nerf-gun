@@ -191,7 +191,7 @@ if not pi.connected:
     exit()
 
 LED_PIN = 17  # Green LED
-RED_LED_PIN = 24
+RED_LED_PIN = 15
 GPIO.setup(LED_PIN, GPIO.OUT)
 GPIO.setup(RED_LED_PIN, GPIO.OUT)
 GPIO.output(RED_LED_PIN, GPIO.HIGH)
