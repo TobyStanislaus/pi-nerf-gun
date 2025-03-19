@@ -223,8 +223,9 @@ pull_switch(servo_pin, pi)
 picam2 = Picamera2()
 # Optimize camera settings for speed
 picam2.configure(picam2.create_still_configuration(
-    main={'size': (160, 120)},  # Even smaller resolution
-    lores={'size': (160, 120)},
+    main={'size': (1920, 1080)},  # Higher resolution for better image quality
+    lores={'size': (640, 480)},   # Use a reasonable lores resolution
+
 
     buffer_count=1,  # Minimum buffer
     display=None,    # No display buffer
