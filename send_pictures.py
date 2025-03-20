@@ -5,6 +5,7 @@ import base64
 import time
 import RPi.GPIO as GPIO
 from servo_control import *
+from images import *
 import cv2
 import pigpio
 import statistics  # For calculating averages and statistics of timings
@@ -24,7 +25,7 @@ def on_connect(client, userdata, flags, rc):
     if rc == 0:
         is_connected = True
         update_led_status()
-        client.subscribe(TOPIC_RESPONSE)
+        client.subscribe("response/decision")
  
     else:
         is_connected = False
@@ -40,6 +41,7 @@ def on_disconnect(client, userdata, rc):
 
 
 def on_message(client, userdata, msg):
+
     global last_shot_time, last_response_time, last_publish_time
     current_time = time.time()
     
@@ -54,13 +56,13 @@ def on_message(client, userdata, msg):
     
     if current_time - last_shot_time >= COOLDOWN_TIME:
         response = msg.payload.decode()
-        
+        print(response)
         #print(f"Received response: {response}")
         
         GPIO.output(LED_PIN, GPIO.HIGH)
         GPIO.output(RED_LED_PIN, GPIO.LOW)
 
-        if response == 'yes':
+        if response == 'true':
             # Turn red LED on and green LED off when shooting
             GPIO.output(RED_LED_PIN, GPIO.HIGH)
             GPIO.output(LED_PIN, GPIO.LOW)
@@ -89,10 +91,11 @@ def connect_mqtt():
     global is_connected
     while not is_connected:
         try:
-            client.connect(BROKER_IP, BROKER_PORT, keepalive=5)
-            client.loop_start()
-            time.sleep(RECONNECT_DELAY)  
-        except Exception as e:
+            client.connect(BROKER_IP, BROKER_PORT)
+            client.loop()
+            time.sleep(RECONNECT_DELAY)
+        except Exception as e:#
+            print('dis')
             GPIO.output(RED_LED_PIN, GPIO.HIGH)
             GPIO.output(LED_PIN, GPIO.LOW) 
             time.sleep(RECONNECT_DELAY)
@@ -102,37 +105,12 @@ def capture_and_publish():
     
     if is_connected:
         try:
+            
             # Time image capture
-            start_capture = time.time()
+
             image = picam2.capture_array()
-            end_capture = time.time()
-            capture_time = end_capture - start_capture
-            timings["image_capture"].append(capture_time)
-            
-            # Time encoding
-            start_encode = time.time()
-            _, buffer = cv2.imencode(".jpg", image, [cv2.IMWRITE_JPEG_QUALITY, 35])
-            encoded_image = base64.b64encode(buffer).decode()
-            end_encode = time.time()
-            encode_time = end_encode - start_encode
-            timings["encoding"].append(encode_time)
-            
-            # Time MQTT publish
-            start_publish = time.time()
-            client.publish(TOPIC_IMAGE, encoded_image)
-            end_publish = time.time()
-            publish_time = end_publish - start_publish
-            timings["mqtt_publish"].append(publish_time)
-            
-            # Total time for the entire publish operation
-            total_time = end_publish - start_capture
-            timings["total_publish"].append(total_time)
-            
-            # Store the publish time for calculating response latency
-            client.last_publish_time = end_publish
-            
-            last_successful_publish = time.time()
-            
+           
+            send_image(image)
             # Print timing information
            # print(f"Capture: {capture_time:.4f}s, Encode: {encode_time:.4f}s, Publish: {publish_time:.4f}s, Total: {total_time:.4f}s")
             
@@ -177,8 +155,8 @@ def boot_pc(BROKER):
     publish.single(TOPIC, SCRIPT_NAME, hostname=BROKER)
 
 # Rest of your initialization code remains the same
-BROKER_IP = "192.168.0.155"
-boot_pc(BROKER_IP)
+BROKER_IP = "192.168.0.47"
+#boot_pc(BROKER_IP)
 
 # Set up GPIO
 GPIO.setwarnings(False)
@@ -206,18 +184,21 @@ last_shot_time = 0
 last_response_time = time.time()
 COOLDOWN_TIME = 2.0  # Reduced from 2 seconds
 last_successful_publish = time.time()
-CONNECTION_TIMEOUT = 1.5  # Reduced from 3 seconds
+CONNECTION_TIMEOUT = 5  # Reduced from 3 seconds
 RESPONSE_TIMEOUT = 1.5  # Reduced from 3 seconds
 RECONNECT_DELAY = 1.0  # Reduced from 3 seconds
 is_connected = False
 
-client = mqtt.Client(client_id=CLIENT_ID, callback_api_version=mqtt.CallbackAPIVersion.VERSION1)
+
+client = mqtt.Client(client_id="Image-sender")
+client.subscribe("response/decision")  # Change this to match your phone's publishing topic
+
 client.on_connect = on_connect  
 client.on_disconnect = on_disconnect
 client.on_message = on_message
 
 connect_mqtt()
-pull_switch(servo_pin, pi)
+#pull_switch(servo_pin, pi)
 
 # Set up Picamera2
 picam2 = Picamera2()
@@ -240,7 +221,17 @@ timing_report_interval = 30  # Print timing stats every 30 seconds
 last_timing_report = time.time()
 
 try:
+
     while True:
+        '''
+        client.connect(BROKER_IP, BROKER_PORT)
+        image = cv2.imread('test.jpeg')
+        _, buffer = cv2.imencode(".jpeg", image, [cv2.IMWRITE_JPEG_QUALITY, 35])
+
+        encoded_image = base64.b64encode(buffer).decode("utf-8")  # Convert to Base64 string
+        state= client.publish(TOPIC_IMAGE, encoded_image)  # Send via MQTT
+        '''
+
         capture_and_publish()
         check_connection_and_responses()
         
@@ -250,7 +241,7 @@ try:
             #print_timing_stats()
             last_timing_report = current_time
             
-        time.sleep(0.05)  # Reduced from 0.1
+        time.sleep(0.1)  # Reduced from 0.1
 
 except KeyboardInterrupt:
     print_timing_stats()  # Print final stats on exit
