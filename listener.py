@@ -4,6 +4,7 @@ import RPi.GPIO as GPIO
 import pigpio
 import threading
 import time
+
 def listen():
     servo_pin = 18 
     BROKER_IP = "127.0.0.1"  
@@ -25,11 +26,13 @@ def listen():
 
     # Timer to track message timeout
     timeout_duration = 1  # Change this to set the delay (in seconds)
-    global last_pull_time
+    global last_pull_time, timeout_timer
     last_pull_time = 0
+    timeout_timer = None
 
     def reset_timer():
         """Resets the timer each time a message is received."""
+        global timeout_timer
         if timeout_timer:
             timeout_timer.cancel()  # Cancel the previous timer
         timeout_timer = threading.Timer(timeout_duration, turn_red)
@@ -49,7 +52,7 @@ def listen():
             print(f"Failed to connect, return code {rc}")
 
     def on_message(client, userdata, msg):
-        global timeout_timer
+        global timeout_timer, last_pull_time
 
         response = msg.payload.decode()
 
@@ -72,7 +75,5 @@ def listen():
 
     print("Connecting to MQTT broker...")
     client.connect(BROKER_IP, BROKER_PORT)
-    global timeout_timer
-    timeout_timer = None
     reset_timer()  
     client.loop_forever()
