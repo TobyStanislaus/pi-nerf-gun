@@ -42,7 +42,7 @@ def listen():
         """Turn the green light ON and red light OFF after timeout."""
         GPIO.output(LED_PIN, GPIO.LOW)
         GPIO.output(RED_LED_PIN, GPIO.HIGH)
-        print("No response received, turning green light ON.")
+        print("No response received, turning red light ON.")
 
     def on_connect(client, userdata, flags, rc):
         if rc == 0:
@@ -58,11 +58,12 @@ def listen():
 
         current_time = time.time()
         if response == 'true' and current_time-last_pull_time>1:
+            
             pull_switch(servo_pin, pi)
             last_pull_time=current_time
             GPIO.output(RED_LED_PIN, GPIO.HIGH)
             GPIO.output(LED_PIN, GPIO.LOW)
-        else:  
+        if current_time-last_pull_time>1:  
             GPIO.output(RED_LED_PIN, GPIO.LOW)
             GPIO.output(LED_PIN, GPIO.HIGH)
 
