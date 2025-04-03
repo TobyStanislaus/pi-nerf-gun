@@ -3,7 +3,7 @@ from servo_control import *
 import RPi.GPIO as GPIO
 import pigpio
 import threading
-
+import time
 def listen():
     servo_pin = 18 
     BROKER_IP = "127.0.0.1"  
@@ -25,11 +25,11 @@ def listen():
 
     # Timer to track message timeout
     timeout_duration = 1  # Change this to set the delay (in seconds)
-      
+    global last_pull_time
+    last_pull_time = 0
 
     def reset_timer():
         """Resets the timer each time a message is received."""
-        global timeout_timer
         if timeout_timer:
             timeout_timer.cancel()  # Cancel the previous timer
         timeout_timer = threading.Timer(timeout_duration, turn_red)
@@ -52,13 +52,16 @@ def listen():
         global timeout_timer
 
         response = msg.payload.decode()
-        print(response)
 
-        GPIO.output(RED_LED_PIN, GPIO.LOW)
-        GPIO.output(LED_PIN, GPIO.HIGH)
-
-        if response == 'true':
-            pull_switch(servo_pin, pi)  
+        current_time = time.time()
+        if response == 'true' and current_time-last_pull_time>1:
+            pull_switch(servo_pin, pi)
+            last_pull_time=current_time
+            GPIO.output(RED_LED_PIN, GPIO.HIGH)
+            GPIO.output(LED_PIN, GPIO.LOW)
+        else:  
+            GPIO.output(RED_LED_PIN, GPIO.LOW)
+            GPIO.output(LED_PIN, GPIO.HIGH)
 
         reset_timer()
 
