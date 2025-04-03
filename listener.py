@@ -1,32 +1,75 @@
 import paho.mqtt.client as mqtt
+from servo_control import *
+import RPi.GPIO as GPIO
+import pigpio
+import threading
 
-# MQTT Broker details
-BROKER_IP = "127.0.0.1"  # If Mosquitto is running on the Pi itself
-BROKER_PORT = 1883
-TOPIC = "response/decision"
+def listen():
+    servo_pin = 18 
+    BROKER_IP = "127.0.0.1"  
+    BROKER_PORT = 1883
+    TOPIC = "response/decision"
 
-# Callback when the client connects to the broker
-def on_connect(client, userdata, flags, rc):
-    if rc == 0:
-        print("Connected to MQTT broker!")
-        client.subscribe(TOPIC)  # Subscribe to the topic
-    else:
-        print(f"Failed to connect, return code {rc}")
+    LED_PIN = 17  # Green LED
+    RED_LED_PIN = 15
 
-# Callback when a message is received
-def on_message(client, userdata, msg):
-    print(f"Received message on {msg.topic}: {msg.payload.decode()}")
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(LED_PIN, GPIO.OUT)
+    GPIO.setup(RED_LED_PIN, GPIO.OUT)
 
-# Create an MQTT client instance
-client = mqtt.Client()
+    # Default LED state: Red ON, Green OFF
+    GPIO.output(RED_LED_PIN, GPIO.HIGH)
+    GPIO.output(LED_PIN, GPIO.LOW)
 
-# Attach callback functions
-client.on_connect = on_connect
-client.on_message = on_message
+    pi = pigpio.pi()
 
-# Connect to the MQTT broker
-print("Connecting to MQTT broker...")
-client.connect(BROKER_IP, BROKER_PORT, 60)
+    # Timer to track message timeout
+    timeout_duration = 1  # Change this to set the delay (in seconds)
+      
 
-# Start listening for messages
-client.loop_forever()
+    def reset_timer():
+        """Resets the timer each time a message is received."""
+        global timeout_timer
+        if timeout_timer:
+            timeout_timer.cancel()  # Cancel the previous timer
+        timeout_timer = threading.Timer(timeout_duration, turn_red)
+        timeout_timer.start()
+
+    def turn_red():
+        """Turn the green light ON and red light OFF after timeout."""
+        GPIO.output(LED_PIN, GPIO.LOW)
+        GPIO.output(RED_LED_PIN, GPIO.HIGH)
+        print("No response received, turning green light ON.")
+
+    def on_connect(client, userdata, flags, rc):
+        if rc == 0:
+            print("Connected to MQTT broker!")
+            client.subscribe(TOPIC)
+        else:
+            print(f"Failed to connect, return code {rc}")
+
+    def on_message(client, userdata, msg):
+        global timeout_timer
+
+        response = msg.payload.decode()
+        print(response)
+
+        GPIO.output(RED_LED_PIN, GPIO.LOW)
+        GPIO.output(LED_PIN, GPIO.HIGH)
+
+        if response == 'true':
+            pull_switch(servo_pin, pi)  
+
+        reset_timer()
+
+
+    client = mqtt.Client()
+    client.on_connect = on_connect
+    client.on_message = on_message
+
+    print("Connecting to MQTT broker...")
+    client.connect(BROKER_IP, BROKER_PORT)
+    global timeout_timer
+    timeout_timer = None
+    reset_timer()  
+    client.loop_forever()
