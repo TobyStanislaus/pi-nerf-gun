@@ -19,7 +19,9 @@ sudo apt install -y \
   pigpio \
   python3-pigpio \
   python3-rpi.gpio \
-  libboost-dev
+  libboost-dev \
+  mosquitto \
+  mosquitto-clients -y
 
 # Enable camera and pigpio on boot
 sudo raspi-config nonint do_camera 0
@@ -36,3 +38,32 @@ pip install -r requirements.txt
 
 echo "✅ Virtual environment setup complete!"
 echo "To activate it, run: source venv/bin/activate"
+
+# Create systemd service for the Pi Nerf Gun
+echo "Creating systemd service..."
+
+sudo bash -c 'cat > /etc/systemd/system/pi-nerf-gun.service << EOF
+[Unit]
+Description=Pi Nerf Gun Service
+After=network.target
+
+[Service]
+ExecStart=/home/pi/Documents/pi-nerf-gun/venv/bin/python /home/pi/Documents/pi-nerf-gun/send_pictures.py
+WorkingDirectory=/home/pi/Documents/pi-nerf-gun
+User=pi
+Group=pi
+Environment=PATH=/home/pi/Documents/pi-nerf-gun/venv/bin:/usr/bin:/bin
+Environment=VIRTUAL_ENV=/home/pi/Documents/pi-nerf-gun/venv
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF'
+
+# Reload systemd, enable and start the service
+sudo systemctl daemon-reload
+sudo systemctl enable pi-nerf-gun.service
+sudo systemctl start pi-nerf-gun.service
+
+echo "✅ Pi Nerf Gun service created and started!"

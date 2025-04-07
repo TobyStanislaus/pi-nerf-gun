@@ -70,7 +70,7 @@ def boot_pc(BROKER):
     publish.single(TOPIC, SCRIPT_NAME, hostname=BROKER)
 
 # Rest of your initialization code remains the same
-BROKER_IP = "192.168.0.47"
+BROKER_IP = "127.0.0.1"
 #boot_pc(BROKER_IP)
 
 # Set up GPIO

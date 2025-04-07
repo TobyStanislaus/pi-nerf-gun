@@ -9,7 +9,7 @@ print("✅ All images sent.")
 
 
 def send_image(image):
-    BROKER_IP = "192.168.0.47"
+    BROKER_IP = "127.0.0.1"
     BROKER_PORT = 1883
     TOPIC_IMAGE = "image/stream"
     client = mqtt.Client(client_id="Image-sender")
