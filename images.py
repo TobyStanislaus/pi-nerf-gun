@@ -15,7 +15,7 @@ def send_image(image):
     client = mqtt.Client(client_id="Image-sender")
     client.connect(BROKER_IP, BROKER_PORT)
 
-
+    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     _, buffer = cv2.imencode(".jpeg", image, [cv2.IMWRITE_JPEG_QUALITY, 35])
 
     encoded_image = base64.b64encode(buffer).decode("utf-8")  # Convert to Base64 
