@@ -25,7 +25,7 @@ def listen():
     pi = pigpio.pi()
 
     # Timer to track message timeout
-    timeout_duration = 1  # Change this to set the delay (in seconds)
+    timeout_duration = 0.3  # Change this to set the delay (in seconds)
     global last_pull_time, timeout_timer
     last_pull_time = 0
     timeout_timer = None
