@@ -25,7 +25,7 @@ def listen():
     pi = pigpio.pi()
 
     # Timer to track message timeout
-    timeout_duration = 0.3  # Change this to set the delay (in seconds)
+    timeout_duration = 0.4  # Change this to set the delay (in seconds)
     global last_pull_time, timeout_timer
     last_pull_time = 0
     timeout_timer = None
@@ -63,9 +63,13 @@ def listen():
             last_pull_time=current_time
             GPIO.output(RED_LED_PIN, GPIO.HIGH)
             GPIO.output(LED_PIN, GPIO.LOW)
+            
         if current_time-last_pull_time>1:  
             GPIO.output(RED_LED_PIN, GPIO.LOW)
             GPIO.output(LED_PIN, GPIO.HIGH)
+
+        if response == 'stop':
+            turn_red()
 
         reset_timer()
 
