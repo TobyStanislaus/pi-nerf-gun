@@ -10,6 +10,7 @@ import cv2
 import pigpio
 import threading
 from listener import listen
+pull_switch()
 
 listener_thread = threading.Thread(target=listen)
 listener_thread.start()
@@ -130,6 +131,7 @@ picam2.configure(picam2.create_still_configuration(
 
 # Enable camera to start in always-on capture mode
 picam2.start()
+
 
 try:
 
