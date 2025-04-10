@@ -10,7 +10,7 @@ import cv2
 import pigpio
 import threading
 from listener import listen
-pull_switch()
+
 
 listener_thread = threading.Thread(target=listen)
 listener_thread.start()
@@ -80,6 +80,7 @@ GPIO.setmode(GPIO.BCM)
 
 servo_pin = 18  # GPIO18 for the servo
 pi = pigpio.pi()
+pull_switch(servo_pin, pi)
 
 if not pi.connected:
     exit()
