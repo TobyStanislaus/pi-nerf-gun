@@ -60,7 +60,7 @@ def listen():
         response = msg.payload.decode()
 
         current_time = time.time()
-        if response == 'true' and current_time-last_pull_time>1 and primed or response == 'shoot':
+        if (response == 'true' and current_time-last_pull_time>1 and primed) or response == 'shoot':
             pull_switch(servo_pin, pi)
             last_pull_time=current_time
             turn_red()
