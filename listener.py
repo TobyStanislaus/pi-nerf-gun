@@ -65,7 +65,7 @@ def listen():
             last_pull_time=current_time
             turn_red()
             
-        if primed or response == 'start':
+        if (primed or response == 'start') and current_time-last_pull_time>1:
             primed=True
             turn_green()
 
