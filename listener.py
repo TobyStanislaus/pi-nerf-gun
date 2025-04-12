@@ -32,9 +32,10 @@ def listen():
 
 
     timeout_duration = 0.4 
-    global last_pull_time, timeout_timer
+    global last_pull_time, timeout_timer, primed
     last_pull_time = 0
     timeout_timer = None
+    primed = True
 
     def reset_timer():
         """Resets the timer each time a message is received."""
@@ -54,21 +55,22 @@ def listen():
             print(f"Failed to connect, return code {rc}")
 
     def on_message(client, userdata, msg):
-        global timeout_timer, last_pull_time
+        global timeout_timer, last_pull_time, primed
 
         response = msg.payload.decode()
 
         current_time = time.time()
-        if response == 'true' and current_time-last_pull_time>1:
-            
+        if response == 'true' and current_time-last_pull_time>1 and primed or response == 'shoot':
             pull_switch(servo_pin, pi)
             last_pull_time=current_time
             turn_red()
             
-        if response == 'start':
+        if primed or response == 'start':
+            primed=True
             turn_green()
 
         if response == 'stop':
+            primed=False
             turn_red()
 
         reset_timer()
