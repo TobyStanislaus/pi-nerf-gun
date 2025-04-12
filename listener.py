@@ -11,21 +11,27 @@ def listen():
     BROKER_PORT = 1883
     TOPIC = "response/decision"
 
-    LED_PIN = 17  # Green LED
+    LED_PIN = 17  
     RED_LED_PIN = 15
 
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(LED_PIN, GPIO.OUT)
     GPIO.setup(RED_LED_PIN, GPIO.OUT)
 
-    # Default LED state: Red ON, Green OFF
-    GPIO.output(RED_LED_PIN, GPIO.HIGH)
-    GPIO.output(LED_PIN, GPIO.LOW)
+    def turn_red():
+        GPIO.output(LED_PIN, GPIO.LOW)
+        GPIO.output(RED_LED_PIN, GPIO.HIGH)
+
+    def turn_green():
+        GPIO.output(LED_PIN, GPIO.HIGH)
+        GPIO.output(RED_LED_PIN, GPIO.LOW)
+
+    turn_red()
 
     pi = pigpio.pi()
 
-    # Timer to track message timeout
-    timeout_duration = 0.4  # Change this to set the delay (in seconds)
+
+    timeout_duration = 0.4 
     global last_pull_time, timeout_timer
     last_pull_time = 0
     timeout_timer = None
@@ -38,11 +44,7 @@ def listen():
         timeout_timer = threading.Timer(timeout_duration, turn_red)
         timeout_timer.start()
 
-    def turn_red():
-        """Turn the green light ON and red light OFF after timeout."""
-        GPIO.output(LED_PIN, GPIO.LOW)
-        GPIO.output(RED_LED_PIN, GPIO.HIGH)
-        print("No response received, turning red light ON.")
+    
 
     def on_connect(client, userdata, flags, rc):
         if rc == 0:
@@ -61,12 +63,10 @@ def listen():
             
             pull_switch(servo_pin, pi)
             last_pull_time=current_time
-            GPIO.output(RED_LED_PIN, GPIO.HIGH)
-            GPIO.output(LED_PIN, GPIO.LOW)
+            turn_red()
             
-        if current_time-last_pull_time>1:  
-            GPIO.output(RED_LED_PIN, GPIO.LOW)
-            GPIO.output(LED_PIN, GPIO.HIGH)
+        if primed or response == 'start':
+            turn_green()
 
         if response == 'stop':
             turn_red()
