@@ -1,4 +1,4 @@
-paho-mqtt
+paho-mqtt>=1.6
 opencv-python-headless
 picamera2
 RPi.GPIO

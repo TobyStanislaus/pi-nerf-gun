@@ -45,7 +45,12 @@ echo "Creating systemd service..."
 sudo bash -c 'cat > /etc/systemd/system/pi-nerf-gun.service << EOF
 [Unit]
 Description=Pi Nerf Gun Service
-After=network.target
+After=network-online.target pigpiod.service mosquitto.service
+Wants=network-online.target mosquitto.service
+Requires=pigpiod.service
+# Stop hammering the hardware if something is genuinely broken.
+StartLimitIntervalSec=300
+StartLimitBurst=5
 
 [Service]
 ExecStart=/home/pi/Documents/pi-nerf-gun/venv/bin/python /home/pi/Documents/pi-nerf-gun/send_pictures.py

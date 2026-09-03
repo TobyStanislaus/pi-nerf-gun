@@ -1,26 +1,25 @@
-import paho.mqtt.client as mqtt
-import os
+"""Encode a camera frame and publish it on an already-connected MQTT client."""
 import base64
-import time
+
 import cv2
+import paho.mqtt.client as mqtt
+
+from config import JPEG_QUALITY, TOPIC_IMAGE
 
 
-print("✅ All images sent.")
+def encode_frame(image, quality=JPEG_QUALITY):
+    ok, buffer = cv2.imencode(".jpeg", image, [cv2.IMWRITE_JPEG_QUALITY, quality])
+    if not ok:
+        raise RuntimeError("cv2.imencode failed")
+    return base64.b64encode(buffer).decode("utf-8")
 
 
-def send_image(image):
-    BROKER_IP = "127.0.0.1"
-    BROKER_PORT = 1883
-    TOPIC_IMAGE = "image/stream"
-    client = mqtt.Client(client_id="Image-sender")
-    client.connect(BROKER_IP, BROKER_PORT)
+def send_image(client, image, topic=TOPIC_IMAGE, quality=JPEG_QUALITY):
+    """Publish one frame on the shared client. Returns True if it was queued.
 
-    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    _, buffer = cv2.imencode(".jpeg", image, [cv2.IMWRITE_JPEG_QUALITY, 35])
-
-    encoded_image = base64.b64encode(buffer).decode("utf-8")  # Convert to Base64 
-    client.publish(TOPIC_IMAGE, encoded_image)  # Send via MQTT
-
-
-    client.disconnect()
-
+    The client is passed in on purpose: opening a fresh connection per frame
+    exhausts sockets and makes the broker evict the other client using the same
+    client id.
+    """
+    info = client.publish(topic, encode_frame(image, quality))
+    return info.rc == mqtt.MQTT_ERR_SUCCESS

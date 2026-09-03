@@ -81,6 +81,27 @@ The project is designed to run on a Raspberry Pi with:
 
 The servo is controlled using `pigpio`.
 
+## Configuration
+
+Everything configurable lives in `config.py` and can be overridden with
+environment variables, so nothing has to be edited to point the Pi at a
+different broker:
+
+| Variable | Default | Purpose |
+| -------- | ------- | ------- |
+| `NERF_BROKER_IP` | `127.0.0.1` | MQTT broker address |
+| `NERF_BROKER_PORT` | `1883` | MQTT broker port |
+| `NERF_SERVO_PIN` | `18` | Servo GPIO pin |
+| `NERF_LED_PIN` | `17` | Green LED pin |
+| `NERF_RED_LED_PIN` | `15` | Red LED pin |
+| `NERF_FRAME_WIDTH` / `NERF_FRAME_HEIGHT` | `640` / `480` | Published frame size |
+| `NERF_FRAME_INTERVAL` | `0.1` | Seconds between frames |
+| `NERF_JPEG_QUALITY` | `35` | JPEG quality |
+| `NERF_COOLDOWN` | `1.0` | Minimum seconds between shots |
+| `NERF_STATUS_TIMEOUT` | `0.4` | Seconds of silence before the red LED comes back |
+
+Under systemd, add them as `Environment=` lines in the unit file.
+
 ## Installation
 
 Clone the repository:
@@ -122,14 +143,23 @@ python send_pictures.py
 
 This will:
 
-1. Start the MQTT listener in a separate thread.
-2. Initialise the GPIO pins and servo.
-3. Initialise the Raspberry Pi camera.
-4. Continuously capture images.
-5. Compress and encode each image.
-6. Publish the image to the MQTT image stream.
-7. Wait for responses from the external image processing system.
-8. Fire the Nerf gun when an appropriate response is received.
+1. Connect to `pigpio` and fail fast with a clear message if the daemon is down.
+2. Initialise the GPIO pins and status LEDs.
+3. Connect to the MQTT broker, retrying with backoff until it is available.
+4. Initialise the Raspberry Pi camera.
+5. Continuously capture, compress, encode and publish frames.
+6. Handle responses from the external image processing system.
+7. Fire the Nerf gun when an appropriate response is received.
+
+The process shuts down cleanly on both `Ctrl-C` and `SIGTERM` (the signal
+`systemctl stop` sends), releasing the servo pulse and the GPIO pins.
+
+### Troubleshooting
+
+* **Exits immediately with a pigpio message** - run `sudo systemctl start pigpiod`.
+* **Red LED never turns green** - nothing is publishing on `response/decision`.
+  Check with `mosquitto_sub -t 'response/decision' -v`.
+* **Logs** - `journalctl -u pi-nerf-gun -f`.
 
 ## MQTT Communication
 
@@ -168,14 +198,22 @@ The status LEDs provide visual feedback about the state of the system.
 pi-nerf-gun/
 │
 ├── send_pictures.py      # Main application and camera loop
+├── config.py             # Broker, pins and timings (env-var overridable)
 ├── images.py             # Image compression, encoding and MQTT publishing
-├── listener.py           # MQTT response listener and LED control
+├── listener.py           # Decision handling and firing logic
+├── leds.py               # Status LED control
+├── mqtt_utils.py         # paho-mqtt 1.x / 2.x compatibility
 ├── servo_control.py      # Servo movement and trigger control
-├── led.py                # LED functionality
+├── blink_test.py         # Standalone LED sanity check
 ├── requirements.txt      # Python dependencies
 ├── setup.sh              # Setup script
 └── test.jpeg             # Test image
 ```
+
+The whole process uses a single MQTT client, a single `pigpio` handle and a
+single set of GPIO pins. The decision listener runs on paho's network thread
+rather than opening a second connection of its own, and servo movement is
+handed off to a short-lived worker so the network loop is never blocked.
 
 ## Servo Control
 
@@ -211,13 +249,9 @@ This allows computationally intensive image processing to run on more powerful h
 
 Possible improvements include:
 
-* Configurable MQTT broker addresses
-* Environment variables or configuration files
-* Better error handling and reconnection logic
-* Camera frame rate optimisation
-* Authentication for MQTT communication
-* Logging and diagnostics
-* A systemd service for automatic startup
+* Authentication and TLS for MQTT communication
+* Adaptive frame rate based on broker backpressure
+* A hardware arming switch in series with the servo
 * More sophisticated firing and safety logic
 
 ## Related Project
