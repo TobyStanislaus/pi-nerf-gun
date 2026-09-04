@@ -1,4 +1,5 @@
 import paho.mqtt.client as mqtt
+from mqtt_utils import make_client
 from servo_control import *
 import RPi.GPIO as GPIO
 import pigpio
@@ -76,7 +77,7 @@ def listen():
         reset_timer()
 
 
-    client = mqtt.Client()
+    client = make_client()
     client.on_connect = on_connect
     client.on_message = on_message
 

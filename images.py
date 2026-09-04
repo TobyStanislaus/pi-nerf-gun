@@ -1,26 +1,16 @@
-import paho.mqtt.client as mqtt
-import os
 import base64
-import time
 import cv2
 
+TOPIC_IMAGE = "image/stream"
 
-print("✅ All images sent.")
 
+def send_image(client, image):
+    """Publish one frame on an already-connected client.
 
-def send_image(image):
-    BROKER_IP = "127.0.0.1"
-    BROKER_PORT = 1883
-    TOPIC_IMAGE = "image/stream"
-    client = mqtt.Client(client_id="Image-sender")
-    client.connect(BROKER_IP, BROKER_PORT)
-
-    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    This used to connect and disconnect on every frame - ten times a second -
+    using the same client id as the main client, so the broker evicted one
+    whenever the other connected.
+    """
     _, buffer = cv2.imencode(".jpeg", image, [cv2.IMWRITE_JPEG_QUALITY, 35])
-
-    encoded_image = base64.b64encode(buffer).decode("utf-8")  # Convert to Base64 
+    encoded_image = base64.b64encode(buffer).decode("utf-8")  # Convert to Base64
     client.publish(TOPIC_IMAGE, encoded_image)  # Send via MQTT
-
-
-    client.disconnect()
-

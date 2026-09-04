@@ -10,9 +10,10 @@ import cv2
 import pigpio
 import threading
 from listener import listen
+from mqtt_utils import make_client
 
 
-listener_thread = threading.Thread(target=listen)
+listener_thread = threading.Thread(target=listen, daemon=True)
 listener_thread.start()
 
 
@@ -37,15 +38,17 @@ def on_disconnect(client, userdata, rc):
 
 def connect_mqtt():
     global is_connected
+    # loop_start runs the network thread for the life of the process. The old
+    # single client.loop() call returned immediately, so on_disconnect never
+    # fired and the broker dropped the socket on keepalive.
+    client.loop_start()
     while not is_connected:
         try:
             client.connect(BROKER_IP, BROKER_PORT)
-            client.loop()
-            time.sleep(RECONNECT_DELAY)
-        except Exception as e:
+        except Exception:
             GPIO.output(RED_LED_PIN, GPIO.HIGH)
-            GPIO.output(LED_PIN, GPIO.LOW) 
-            time.sleep(RECONNECT_DELAY)
+            GPIO.output(LED_PIN, GPIO.LOW)
+        time.sleep(RECONNECT_DELAY)
 
 
 def capture_and_publish():
@@ -55,7 +58,7 @@ def capture_and_publish():
         try:
             image = picam2.capture_array()
            
-            send_image(image)
+            send_image(client, image)
             # Print timing information
            # print(f"Capture: {capture_time:.4f}s, Encode: {encode_time:.4f}s, Publish: {publish_time:.4f}s, Total: {total_time:.4f}s")
             
@@ -80,10 +83,12 @@ GPIO.setmode(GPIO.BCM)
 
 servo_pin = 18  # GPIO18 for the servo
 pi = pigpio.pi()
-pull_switch(servo_pin, pi)
 
 if not pi.connected:
+    print("pigpio daemon not running - start it with: sudo systemctl start pigpiod")
     exit()
+
+pull_switch(servo_pin, pi)
 
 LED_PIN = 17  # Green LED
 RED_LED_PIN = 15
@@ -106,8 +111,7 @@ RECONNECT_DELAY = 1.0  # Reduced from 3 seconds
 is_connected = False
 
 
-client = mqtt.Client(client_id="Image-sender")
-client.subscribe("response/decision")  # Change this to match your phone's publishing topic
+client = make_client("raspberry-pi-camera")
 
 client.on_connect = on_connect  
 client.on_disconnect = on_disconnect
@@ -144,7 +148,6 @@ try:
 except KeyboardInterrupt:
     pass
 finally:
-    listener_thread.join()
     picam2.stop()
     client.loop_stop()
     client.disconnect()
