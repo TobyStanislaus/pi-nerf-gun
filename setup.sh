@@ -28,6 +28,18 @@ sudo raspi-config nonint do_camera 0
 sudo systemctl enable pigpiod
 sudo systemctl start pigpiod
 
+# Let the phone and the vision machine reach the broker.
+# Mosquitto 2.x binds to localhost only unless a listener is configured, so
+# without this only the Pi itself can publish or subscribe.
+# NOTE: this leaves the broker open to anything on the local network. Do not
+# forward port 1883 on your router.
+sudo tee /etc/mosquitto/conf.d/lan.conf > /dev/null << 'MOSQ'
+listener 1883 0.0.0.0
+allow_anonymous true
+MOSQ
+sudo systemctl enable mosquitto
+sudo systemctl restart mosquitto
+
 # Set up Python virtual environment named 'venv'
 python3 -m venv venv --system-site-packages
 source venv/bin/activate

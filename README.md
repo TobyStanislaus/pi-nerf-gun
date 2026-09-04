@@ -133,6 +133,22 @@ sudo pigpiod
 
 An MQTT broker such as Mosquitto is also required.
 
+Mosquitto 2.x binds to localhost only unless a listener is configured, so a
+default install can be reached from the Pi but not from a phone or the vision
+machine. `setup.sh` writes `/etc/mosquitto/conf.d/lan.conf`:
+
+```text
+listener 1883 0.0.0.0
+allow_anonymous true
+```
+
+Check what the broker is actually bound to with `ss -tlnp | grep 1883`.
+
+This leaves the broker open to anything on the local network - on an untrusted
+network, add authentication with `mosquitto_passwd` and set
+`allow_anonymous false`. Do not forward port 1883 on your router: the camera
+stream and the trigger topic are both unauthenticated and unencrypted.
+
 ## Running the System
 
 Start the MQTT broker, then run:
