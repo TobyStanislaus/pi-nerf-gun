@@ -29,6 +29,8 @@ FRAME_HEIGHT = _env("NERF_FRAME_HEIGHT", "1080", int)
 FRAME_SIZE = (FRAME_WIDTH, FRAME_HEIGHT)
 FRAME_INTERVAL = _env("NERF_FRAME_INTERVAL", "0.1", float)
 JPEG_QUALITY = _env("NERF_JPEG_QUALITY", "35", int)
+# How long to wait for a frame before treating the camera as stalled.
+CAPTURE_TIMEOUT = _env("NERF_CAPTURE_TIMEOUT", "5.0", float)
 
 # Behaviour
 COOLDOWN_TIME = _env("NERF_COOLDOWN", "1.0", float)

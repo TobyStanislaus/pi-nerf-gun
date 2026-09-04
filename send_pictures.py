@@ -4,9 +4,12 @@ One MQTT client, one pigpio handle and one set of GPIO pins for the whole
 process. Reconnection is left to paho rather than being hand-rolled.
 """
 import logging
+import os
 import signal
 import sys
+import threading
 import time
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 
 import pigpio
 import RPi.GPIO as GPIO
@@ -25,6 +28,10 @@ logging.basicConfig(
 log = logging.getLogger("nerf")
 
 _running = True
+
+
+class CameraStalled(RuntimeError):
+    """The camera stopped delivering frames."""
 
 
 def _request_shutdown(signum, frame):
@@ -49,6 +56,24 @@ def make_camera():
     )
     picam2.start()
     return picam2
+
+
+def capture_frame(picam2):
+    """Capture one frame, giving up if the camera stops delivering.
+
+    picam2.capture_array() waits forever. If the pipeline stalls - which happens
+    when another process is still holding the camera - the main thread blocks
+    inside a C call, so nothing is published, no error is logged, and the signal
+    handler cannot run. systemd then sees a healthy process and never restarts
+    it. A deadline turns that silent wedge into a clean restart.
+    """
+    job = picam2.capture_array("main", wait=False)
+    try:
+        return picam2.wait(job, timeout=config.CAPTURE_TIMEOUT)
+    except (TimeoutError, FuturesTimeoutError):
+        raise CameraStalled(
+            f"no frame within {config.CAPTURE_TIMEOUT}s"
+        ) from None
 
 
 def main():
@@ -90,6 +115,7 @@ def main():
 
     picam2 = None
     failures = 0
+    status = 0
     try:
         picam2 = make_camera()
         log.info("camera started at %sx%s", *config.FRAME_SIZE)
@@ -98,8 +124,10 @@ def main():
             start = time.monotonic()
             if client.is_connected():
                 try:
-                    send_image(client, picam2.capture_array())
+                    send_image(client, capture_frame(picam2))
                     failures = 0
+                except CameraStalled:
+                    raise
                 except Exception:
                     failures += 1
                     leds.red()
@@ -109,7 +137,16 @@ def main():
 
             elapsed = time.monotonic() - start
             time.sleep(max(0.0, config.FRAME_INTERVAL - elapsed))
+    except CameraStalled as exc:
+        log.error("camera stalled (%s) - exiting so systemd restarts us", exc)
+        status = 2
     finally:
+        # Tearing down a stalled camera can block too. Guarantee the process
+        # actually dies, otherwise systemd waits on a corpse that holds the
+        # camera and every restart inherits the same wedge.
+        bail = threading.Timer(10.0, lambda: os._exit(3))
+        bail.daemon = True
+        bail.start()
         log.info("cleaning up")
         listener.stop()
         client.loop_stop()
@@ -127,7 +164,7 @@ def main():
         pi.set_servo_pulsewidth(config.SERVO_PIN, 0)
         pi.stop()
         GPIO.cleanup()
-    return 0
+    return status
 
 
 if __name__ == "__main__":

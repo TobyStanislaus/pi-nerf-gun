@@ -73,6 +73,9 @@ Environment=PATH=/home/pi/Documents/pi-nerf-gun/venv/bin:/usr/bin:/bin
 Environment=VIRTUAL_ENV=/home/pi/Documents/pi-nerf-gun/venv
 Restart=always
 RestartSec=10
+# A wedged instance must die quickly - while it lives it holds the camera and
+# every restart inherits the same stall.
+TimeoutStopSec=10
 
 [Install]
 WantedBy=multi-user.target

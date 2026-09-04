@@ -97,6 +97,7 @@ different broker:
 | `NERF_FRAME_WIDTH` / `NERF_FRAME_HEIGHT` | `1920` / `1080` | Published frame size |
 | `NERF_FRAME_INTERVAL` | `0.1` | Seconds between frames |
 | `NERF_JPEG_QUALITY` | `35` | JPEG quality |
+| `NERF_CAPTURE_TIMEOUT` | `5.0` | Seconds without a frame before restarting |
 | `NERF_COOLDOWN` | `1.0` | Minimum seconds between shots |
 | `NERF_STATUS_TIMEOUT` | `0.4` | Seconds of silence before the red LED comes back |
 
@@ -173,6 +174,10 @@ The process shuts down cleanly on both `Ctrl-C` and `SIGTERM` (the signal
 ### Troubleshooting
 
 * **Exits immediately with a pigpio message** - run `sudo systemctl start pigpiod`.
+* **Running but publishing nothing** - the camera pipeline has stalled, usually
+  because another instance still holds it. The service now exits after
+  `NERF_CAPTURE_TIMEOUT` seconds without a frame so systemd can restart it
+  cleanly; if it recurs, check for strays with `pgrep -af send_pictures.py`.
 * **Red LED never turns green** - nothing is publishing on `response/decision`.
   Check with `mosquitto_sub -t 'response/decision' -v`.
 * **Logs** - `journalctl -u pi-nerf-gun -f`.
