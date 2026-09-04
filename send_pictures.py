@@ -37,16 +37,13 @@ def _request_shutdown(signum, frame):
 
 def make_camera():
     picam2 = Picamera2()
-    # A video configuration at the size we actually publish. The old still
-    # configuration captured 1920x1080 ten times a second and base64'd the whole
-    # frame onto the wire, which is what filled the client's send queue.
+    # A video configuration rather than the old still configuration, whose
+    # buffer_count=1 could stall. BGR888 matches what create_still_configuration
+    # used to hand back, which is the byte order cv2.imencode expects - setting
+    # RGB888 here swapped red and blue in the published frames.
     picam2.configure(
         picam2.create_video_configuration(
-            main={"size": config.FRAME_SIZE, "format": "RGB888"},
-            # Pin the sensor mode: left to itself libcamera picks the imx708's
-            # 1536x864 binned mode, which logs "PDAF data in unsupported format"
-            # every frame and gives up on phase-detect autofocus.
-            raw={"size": config.RAW_SIZE},
+            main={"size": config.FRAME_SIZE, "format": "BGR888"},
             buffer_count=4,
         )
     )
