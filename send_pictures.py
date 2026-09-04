@@ -43,6 +43,10 @@ def make_camera():
     picam2.configure(
         picam2.create_video_configuration(
             main={"size": config.FRAME_SIZE, "format": "RGB888"},
+            # Pin the sensor mode: left to itself libcamera picks the imx708's
+            # 1536x864 binned mode, which logs "PDAF data in unsupported format"
+            # every frame and gives up on phase-detect autofocus.
+            raw={"size": config.RAW_SIZE},
             buffer_count=4,
         )
     )

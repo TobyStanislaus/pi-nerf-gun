@@ -95,12 +95,20 @@ different broker:
 | `NERF_LED_PIN` | `17` | Green LED pin |
 | `NERF_RED_LED_PIN` | `15` | Red LED pin |
 | `NERF_FRAME_WIDTH` / `NERF_FRAME_HEIGHT` | `640` / `480` | Published frame size |
+| `NERF_RAW_WIDTH` / `NERF_RAW_HEIGHT` | `2304` / `1296` | Sensor mode (see below) |
 | `NERF_FRAME_INTERVAL` | `0.1` | Seconds between frames |
 | `NERF_JPEG_QUALITY` | `35` | JPEG quality |
 | `NERF_COOLDOWN` | `1.0` | Minimum seconds between shots |
 | `NERF_STATUS_TIMEOUT` | `0.4` | Seconds of silence before the red LED comes back |
 
 Under systemd, add them as `Environment=` lines in the unit file.
+
+The raw size pins the sensor mode. Left to itself libcamera picks the imx708's
+1536x864 binned mode, which logs `PDAF data in unsupported format` once per
+frame and disables phase-detect autofocus. If the ISP load of 2304x1296 is a
+problem and autofocus does not matter, set `NERF_RAW_WIDTH=1536` and
+`NERF_RAW_HEIGHT=864` and silence the log with
+`LIBCAMERA_LOG_LEVELS=IPARPI:FATAL`.
 
 ## Installation
 

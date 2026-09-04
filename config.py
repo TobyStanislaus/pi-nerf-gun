@@ -27,6 +27,12 @@ RED_LED_PIN = _env("NERF_RED_LED_PIN", "15", int)
 FRAME_WIDTH = _env("NERF_FRAME_WIDTH", "640", int)
 FRAME_HEIGHT = _env("NERF_FRAME_HEIGHT", "480", int)
 FRAME_SIZE = (FRAME_WIDTH, FRAME_HEIGHT)
+# Sensor mode to request. The imx708's 1536x864 binned mode reports PDAF data in
+# a layout the Pi camera helper cannot parse, which logs an error every frame and
+# breaks phase-detect autofocus; 2304x1296 does not.
+RAW_WIDTH = _env("NERF_RAW_WIDTH", "2304", int)
+RAW_HEIGHT = _env("NERF_RAW_HEIGHT", "1296", int)
+RAW_SIZE = (RAW_WIDTH, RAW_HEIGHT)
 FRAME_INTERVAL = _env("NERF_FRAME_INTERVAL", "0.1", float)
 JPEG_QUALITY = _env("NERF_JPEG_QUALITY", "35", int)
 
