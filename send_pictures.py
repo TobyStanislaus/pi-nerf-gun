@@ -124,7 +124,7 @@ connect_mqtt()
 picam2 = Picamera2()
 # Optimize camera settings for speed
 picam2.configure(picam2.create_still_configuration(
-    main={'size': (1920, 1080)},  # Higher resolution for better image quality
+    main={'size': (640, 480)},   # Smaller main stream: ~10x fewer pixels to encode
     lores={'size': (640, 480)},   # Use a reasonable lores resolution
 
 
