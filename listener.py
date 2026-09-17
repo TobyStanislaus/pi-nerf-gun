@@ -32,7 +32,7 @@ def listen():
     pi = pigpio.pi()
 
 
-    timeout_duration = 0.4 
+    timeout_duration = 1.5  # frames arrive ~250ms apart; 0.4 was close enough to flicker red
     global last_pull_time, timeout_timer, primed
     last_pull_time = 0
     timeout_timer = None
