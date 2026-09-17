@@ -152,7 +152,7 @@ picam2 = Picamera2()
 # Optimize camera settings for speed
 picam2.configure(picam2.create_still_configuration(
     main={'size': (640, 360)},   # 1080p / 3: fewer pixels, same 16:9 shape the app expects
-    lores={'size': (640, 480)},   # Use a reasonable lores resolution
+    lores={'size': (320, 180)},   # Unused, but must not exceed the main stream
 
 
     buffer_count=1,  # Minimum buffer
