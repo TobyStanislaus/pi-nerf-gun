@@ -155,7 +155,7 @@ picam2.configure(picam2.create_still_configuration(
     lores={'size': (320, 180)},   # Unused, but must not exceed the main stream
 
 
-    buffer_count=1,  # Minimum buffer
+    buffer_count=4,  # >1 so the camera cannot overwrite the frame we are encoding
     display=None,    # No display buffer
     #encode='main'
     encode='lores'   # Low resolution encoding
