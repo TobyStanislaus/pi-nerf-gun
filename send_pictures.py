@@ -9,6 +9,9 @@ from images import *
 import cv2
 import pigpio
 import threading
+import os
+import sys
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from listener import listen
 from mqtt_utils import make_client
 
@@ -51,17 +54,41 @@ def connect_mqtt():
         time.sleep(RECONNECT_DELAY)
 
 
+CAPTURE_TIMEOUT = 5.0  # seconds without a frame before we treat the camera as stalled
+
+
+class CameraStalled(RuntimeError):
+    """The camera stopped delivering frames."""
+
+
+def capture_frame():
+    """Capture one frame, giving up if the camera stops delivering.
+
+    picam2.capture_array() waits forever. A stalled pipeline therefore freezes
+    the process: nothing is published, nothing is logged, SIGTERM cannot be
+    handled and systemd sees a healthy service, so Restart=always never fires.
+    A deadline turns that silent freeze into a clean exit and a restart.
+    """
+    job = picam2.capture_array("main", wait=False)
+    try:
+        return picam2.wait(job, timeout=CAPTURE_TIMEOUT)
+    except (TimeoutError, FuturesTimeoutError):
+        raise CameraStalled(f"no frame within {CAPTURE_TIMEOUT}s") from None
+
+
 def capture_and_publish():
     global is_connected
     
     if is_connected:
         try:
-            image = picam2.capture_array()
+            image = capture_frame()
            
             send_image(client, image)
             # Print timing information
            # print(f"Capture: {capture_time:.4f}s, Encode: {encode_time:.4f}s, Publish: {publish_time:.4f}s, Total: {total_time:.4f}s")
             
+        except CameraStalled:
+            raise
         except Exception as e:
             print(f"Error capturing or publishing image: {e}")
             GPIO.output(RED_LED_PIN, GPIO.HIGH)
@@ -138,6 +165,8 @@ picam2.configure(picam2.create_still_configuration(
 picam2.start()
 
 
+exit_code = 0
+
 try:
 
     while True:
@@ -147,10 +176,21 @@ try:
 
 except KeyboardInterrupt:
     pass
+except CameraStalled as e:
+    print(f"Camera stalled ({e}) - exiting so systemd restarts us")
+    exit_code = 2
 finally:
+    # Tearing down a stalled camera can block as well, so guarantee the process
+    # actually dies - otherwise it keeps holding the camera and the restart
+    # inherits the same stall.
+    _bail = threading.Timer(10.0, lambda: os._exit(3))
+    _bail.daemon = True
+    _bail.start()
     picam2.stop()
     client.loop_stop()
     client.disconnect()
     GPIO.cleanup()
     pi.set_servo_pulsewidth(servo_pin, 0)
     pi.stop()
+
+sys.exit(exit_code)
