@@ -54,7 +54,7 @@ def connect_mqtt():
         time.sleep(RECONNECT_DELAY)
 
 
-CAPTURE_TIMEOUT = 5.0  # seconds without a frame before we treat the camera as stalled
+CAPTURE_TIMEOUT = 2.0  # seconds without a frame before we treat the camera as stalled
 
 
 class CameraStalled(RuntimeError):
@@ -177,13 +177,22 @@ try:
 except KeyboardInterrupt:
     pass
 except CameraStalled as e:
-    print(f"Camera stalled ({e}) - exiting so systemd restarts us")
-    exit_code = 2
+    print(f"Camera stalled ({e}) - exiting now so systemd restarts us", flush=True)
+    sys.stdout.flush()
+    sys.stderr.flush()
+    # Release the servo first: pigpiod keeps sending the pulse after we die.
+    try:
+        pi.set_servo_pulsewidth(servo_pin, 0)
+    except Exception:
+        pass
+    # Skip the camera teardown - it blocks when the pipeline is stalled, which
+    # is what made every recovery wait out the 10s bail timer.
+    os._exit(2)
 finally:
     # Tearing down a stalled camera can block as well, so guarantee the process
     # actually dies - otherwise it keeps holding the camera and the restart
     # inherits the same stall.
-    _bail = threading.Timer(10.0, lambda: os._exit(3))
+    _bail = threading.Timer(10.0, lambda: (sys.stdout.flush(), sys.stderr.flush(), os._exit(3)))
     _bail.daemon = True
     _bail.start()
     picam2.stop()
